@@ -2,7 +2,11 @@
 title: "Machine Learning Project"
 title: "Machine Learning Project"
 output:
-  html_document: default
+  html_document:
+    self_contained: true
+    code_folding: show
+    toc: true
+    toc_float: true
 knit: (function(input, ...) {
     rmarkdown::render(input, output_file = "index.html")
   })

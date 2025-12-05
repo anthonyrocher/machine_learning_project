@@ -1,6 +1,11 @@
 ---
 title: "Machine Learning Project"
-format: html
+title: "Machine Learning Project"
+output:
+  html_document: default
+knit: (function(input, ...) {
+    rmarkdown::render(input, output_file = "index.html")
+  })
 editor: visual
 ---
 

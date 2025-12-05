@@ -1,0 +1,28 @@
+# R
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+venv/
+env/
+
+# R Markdown
+*.html
+*.pdf
+*_cache/
+*_files/
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Données (à adapter selon vos besoins)
+*.csv
+*.xlsx
+data/

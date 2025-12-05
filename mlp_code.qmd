@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Project"
-format: html
+format: html_document
 editor: visual
 ---
 

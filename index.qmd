@@ -1,16 +1,10 @@
 ---
 title: "Machine Learning Project"
-title: "Machine Learning Project"
-output:
-  html_document:
-    self_contained: true
-    code_folding: show
+format:
+  html:
+    embed-resources: true
+    code-fold: show
     toc: true
-    toc_float: true
-knit: (function(input, ...) {
-    rmarkdown::render(input, output_file = "index.html")
-  })
-editor: visual
 ---
 
 ## Machine Learning Project

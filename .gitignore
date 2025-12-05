@@ -13,7 +13,6 @@ venv/
 env/
 
 # R Markdown
-*.html
 *.pdf
 *_cache/
 *_files/

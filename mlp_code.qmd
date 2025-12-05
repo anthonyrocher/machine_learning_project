@@ -1,0 +1,32 @@
+---
+title: "Machine Learning Project"
+format: html
+editor: visual
+---
+
+## Machine Learning Project
+
+**Sum up of the project**
+
+Can we predict the risk of developing a tumor based on an individual’s symptoms? We aim to design a simple artificial intelligence system that determines whether a patient should be concerned given their observed symptoms. Using Python and basic machine learning tools, we will train a supervised classification model on a disease–symptom dataset.
+
+**The data**
+
+We use **Disease-Symptom Dataset**
+
+```{python}
+
+#import kagglehub
+
+# Download latest version
+#path = kagglehub.dataset_download("dhivyeshrk/diseases-and-symptoms-dataset")
+
+print("Path to dataset files:")
+
+```
+
+**Pre-processing**
+
+```{python}
+
+```

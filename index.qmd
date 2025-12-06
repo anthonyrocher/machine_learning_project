@@ -31,5 +31,8 @@ print("Path to dataset files:")
 **Pre-processing**
 
 ```{python}
+import pandas as pd
 
+df = pd.read_csv("Final_Augmented_dataset_Diseases_and_Symptoms.csv")
+df
 ```

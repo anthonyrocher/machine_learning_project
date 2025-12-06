@@ -36,3 +36,90 @@ import pandas as pd
 df = pd.read_csv("Final_Augmented_dataset_Diseases_and_Symptoms.csv")
 df
 ```
+
+Lets delve into the dataset:
+```{python}
+df.shape
+```
+
+There are 246,945 observations for 378 variables. We need to clean this a bit to make it more useful and relevant
+
+```{python}
+print(df.dtypes)
+print(df.describe())
+```
+
+Lets see what we can do with the diseases
+
+```{python}
+df["diseases"].unique()
+```
+
+Due to my poor skills in medicine, and to improve both efficiency and relevance, I will use an AI to store the diseases into larger, more comprehensive categories. I will ask it to do it just as we saw in class, with a "if ... in disease... yada yada".
+
+```{python}
+def group_disease(disease):
+    disease = disease.lower()
+    
+    # Maladies cardiovasculaires
+    if any(x in disease for x in ["heart", "coronary", "hypertension", "cardiomyopathy", "aortic", "stroke", "ischemia", "atrial", "valve", "arrhythmia", "thrombosis", "embolism", "angina", "arterial", "vascular"]):
+        return "cardiovascular"
+    
+    # Maladies respiratoires
+    elif any(x in disease for x in ["asthma", "copd", "emphysema", "pulmonary", "bronchiolitis", "respiratory", "pneumonia", "bronchitis", "breath", "lung", "tracheal", "laryngeal", "pleural", "pneumothorax"]):
+        return "respiratory"
+    
+    # Maladies métaboliques / endocriniennes
+    elif any(x in disease for x in ["diabetes", "thyroid", "obesity", "metabolic", "hypoglycemia", "hyperglycemia", "parathyroid", "pituitary", "adrenal", "hormone", "cushing", "graves", "hashimoto"]):
+        return "metabolic_endocrine"
+    
+    # Maladies neurologiques / mentales
+    elif any(x in disease for x in ["depression", "anxiety", "parkinson", "dementia", "adhd", "migraine", "epilepsy", "neuropathy", "stroke", "disorder", "bipolar", "schizophrenia", "psychotic", "panic", "ptsd", "traumatic", "stress", "mental", "neurological", "brain", "alzheimer", "huntington", "als", "sclerosis", "palsy", "nerve"]):
+        return "neurological_psych"
+    
+    # Maladies digestives / hépatiques
+    elif any(x in disease for x in ["liver", "gastro", "pancreatitis", "esophagus", "stomach", "intestinal", "ulcer", "nash", "hepatitis", "crohn", "colitis", "ibs", "diverticular", "cirrhosis", "cholecyst", "bile", "bowel"]):
+        return "digestive_hepatic"
+    
+    # Maladies rénales / urologiques
+    elif any(x in disease for x in ["kidney", "renal", "urethral", "bladder", "prostate", "urine", "urinary", "urologic", "uric", "urea"]):
+        return "renal_urological"
+    
+    # Maladies infectieuses
+    elif any(x in disease for x in ["infection", "viral", "bacterial", "fungal", "dengue", "hiv", "malaria", "tuberculosis", "meningitis", "sepsis", "pneumonia", "hepatitis", "herpes", "gonorrhea", "chlamydia", "syphilis", "lyme", "fever", "cold", "flu", "wart", "lice", "scabies"]):
+        return "infectious"
+    
+    # Maladies musculo-squelettiques
+    elif any(x in disease for x in ["fracture", "injury", "arthritis", "osteoporosis", "spine", "knee", "shoulder", "ankle", "foot", "hip", "bone", "cartilage", "tendon", "ligament", "muscle", "sprain", "strain", "dislocation", "bursitis", "carpal tunnel"]):
+        return "musculoskeletal"
+    
+    # Maladies dermatologiques
+    elif any(x in disease for x in ["skin", "dermatitis", "eczema", "psoriasis", "rash", "acne", "wound", "burn", "ulcer", "sore", "wart", "fungal", "abscess", "cyst", "mole", "lesion", "blister", "impetigo"]):
+        return "dermatological"
+    
+    # Maladies oncologiques
+    elif any(x in disease for x in ["cancer", "tumor", "carcinoma", "lymphoma", "sarcoma", "leukemia", "malignant", "ependymoma", "meningioma", "adenoma", "polyp"]):
+        return "oncology"
+    
+    # Maladies gynécologiques / obstétriques
+    elif any(x in disease for x in ["pregnancy", "uterine", "ovarian", "endometriosis", "fibroids", "menopause", "vagina", "placenta", "cervix", "womb", "female", "gynecolog", "obstetric", "natal", "abortion", "ectopic", "preeclamp"]):
+        return "gynecological_obstetric"
+    
+    # Maladies ophtalmologiques / auditives
+    elif any(x in disease for x in ["eye", "glaucoma", "retina", "vision", "hearing", "tinnitus", "otitis", "ocular", "conjunctivitis", "cataract", "cornea", "optic", "visual", "deaf", "ear", "auditory"]):
+        return "ophthalmology_audiology"
+    
+    # Maladies hématologiques / immunologiques
+    elif any(x in disease for x in ["anemia", "bleeding", "coagulation", "immunodeficiency", "leukemia", "lymphoma", "sickle", "hemophil", "thrombocyt", "polycyth"]):
+        return "hematological_immunological"
+    
+    # Autres / non classés
+    else:
+        return "other"
+
+df["Group diseases"] = df["diseases"].apply(group_disease)
+```
+```{python}
+df["Group diseases"].unique()
+df["Group diseases"].describe()
+```

@@ -22,6 +22,6 @@ env/
 Thumbs.db
 
 # Données (à adapter selon vos besoins)
-*.csv
+#*.csv
 *.xlsx
 data/

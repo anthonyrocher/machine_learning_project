@@ -123,3 +123,6 @@ df["Group diseases"] = df["diseases"].apply(group_disease)
 df["Group diseases"].unique()
 df["Group diseases"].describe()
 ```
+There are maybe still too much diseases in "other" --> what can we do with them?
+
+What about the features? 377 features is actually huge, and we should classify them in a relevant maneer. 

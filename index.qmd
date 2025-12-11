@@ -34,10 +34,11 @@ print("Path to dataset files:")
 import pandas as pd
 
 df = pd.read_csv("Final_Augmented_dataset_Diseases_and_Symptoms.csv")
-df
+#df
 ```
 
 Lets delve into the dataset:
+
 ```{python}
 df.shape
 ```
@@ -119,6 +120,7 @@ def group_disease(disease):
 
 df["Group diseases"] = df["diseases"].apply(group_disease)
 ```
+
 ```{python}
 df["Group diseases"].unique()
 df["Group diseases"].describe()

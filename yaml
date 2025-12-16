@@ -1,0 +1,21 @@
+---
+title: "ML Project"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: true
+    code-tools:
+      source: true
+      toggle: true
+    code-link: true
+    df-print: paged
+    fig-width: 10
+    fig-height: 6
+    fig-dpi: 300
+    embed-resources: true
+execute:
+  cache: true
+  warning: false
+  message: false
+---

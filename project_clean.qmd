@@ -1,54 +1,65 @@
 ---
-title: Machine Learning Project
-jupyter: python3
+title: "Machine Learning Project"
+author: "Votre Nom"
+date: today
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: true
+execute:
+  eval: false
+  echo: true
+  warning: false
+  message: false
 ---
 
+---
 
+## Introduction
 
-Sum up of the project
+This project aims to predict diseases based on patient symptoms using machine learning techniques.
 
-Can we predict the risk of developing a tumor based on an individual’s symptoms? We aim to design a simple artificial intelligence system that determines whether a patient should be concerned given their observed symptoms. Using Python and basic machine learning tools, we will train a supervised classification model on a disease–symptom dataset.
+We test various algorithms including K-Nearest Neighbors, Bagging Tree and Decisision Tree classifiers to determine the most effective model for accurate disease prediction.
 
-*The data*
+We build a search bar interface that allows users to input symptoms and receive potential disease diagnoses based on the trained models.
 
-We use Disease-Symptom Dataset under World Bank license and found in https://www.kaggle.com/datasets/dhivyeshrk/diseases-and-symptoms-dataset. This dataset could not be used in a real research project, but is relevant for a project aimed at manipulating and understanding machine learning. It contains a list of 773 unique diseases associated with 377 symptoms. Theses symptoms are coded as dummy variable: 1 if the symptom is relevant to the disease, 0 otherwise. We end up with 246,000 samples.
+---
 
-**Taking a look at the data**
+## Dataset
+
+We use Disease-Symptom Dataset under World Bank license and found in https://www.kaggle.com/datasets/dhivyeshrk/diseases-and-symptoms-dataset. It contains a list of 773 unique diseases associated with 377 symptoms. Theses symptoms are coded as dummy variable: 1 if the symptom is relevant to the disease, 0 otherwise.
+
+## Initial Data Overview
 
 ```{python}
 import pandas as pd
 
 df = pd.read_csv("Final_Augmented_dataset_Diseases_and_Symptoms.csv")
 
-# Je crée un sample pour que ça tourne plus vite
-df_sample = df.sample(1000).copy()
-df.sample(10)
+# Display the first 5 rows of the DataFrame
+df.head(5)
 ```
 
-```{python}
-df.shape
-```
-
-There are 246,945 observations for 378 variables. We need to clean this a bit to make it more useful and relevant.
+The dataset contains 246945 rows and 378 columns. Each row represents a disease, and each column (except the first) represents a symptom. The first column contains the disease names.
 
 ```{python}
-df.dtypes
-```
-
-```{python}
+print(f"Data shape: {df.shape}")
+print(f"Variable types: \n {df.dtypes}")
 df.describe()
 ```
 
 ```{python}
+
 # Let's take a look at the number of diseases we have:
-len(df["diseases"].unique())
+print(f"Number of unique diseases: {len(df['diseases'].unique())}")
 # There are 773 of them, let's take a look some of them:
-for disease in df_sample["diseases"].unique():
-    print(f"number of {disease}: {df_sample["diseases"].value_counts()[disease]}")
+for disease in df["diseases"].unique():
+    print(f"number of {disease}: {df["diseases"].value_counts()[disease]}")
 # Some are numerous, others are few
 ```
 
-**Pre-processing**
+## Pre-processing
 
 Due to our poor skills in medicine, and to improve both efficiency and relevance, we will use an AI to store the diseases into larger, more comprehensive categories. We will ask it to do it just as we saw in class, with a "if ... in disease... yada yada".
 
@@ -114,9 +125,6 @@ def group_disease(disease):
 
 df["group diseases"] = df["diseases"].apply(group_disease)
 #df_sample["group diseases"] = df["diseases"].apply(group_disease)
-
-# In case here is the list of the above grouped categories:
-#["cardiovascular", "respiratory", "metabolic_endocrine", "neurological_psych", "digestive_hepatic", "renal_urological", "infectious", "musculoskeletal", "dermatological", "oncology", "gynecological_obstetric", "ophthalmology_audiology", "hematological_immunological", "other"]
 ```
 
 Now that we have grouped many of them, let's take some time to look at them again: 

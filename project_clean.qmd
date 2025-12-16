@@ -1,0 +1,1189 @@
+---
+title: Machine Learning Project
+jupyter: python3
+---
+
+
+
+Sum up of the project
+
+Can we predict the risk of developing a tumor based on an individual’s symptoms? We aim to design a simple artificial intelligence system that determines whether a patient should be concerned given their observed symptoms. Using Python and basic machine learning tools, we will train a supervised classification model on a disease–symptom dataset.
+
+*The data*
+
+We use Disease-Symptom Dataset under World Bank license and found in https://www.kaggle.com/datasets/dhivyeshrk/diseases-and-symptoms-dataset. This dataset could not be used in a real research project, but is relevant for a project aimed at manipulating and understanding machine learning. It contains a list of 773 unique diseases associated with 377 symptoms. Theses symptoms are coded as dummy variable: 1 if the symptom is relevant to the disease, 0 otherwise. We end up with 246,000 samples.
+
+**Taking a look at the data**
+
+```{python}
+import pandas as pd
+
+df = pd.read_csv("Final_Augmented_dataset_Diseases_and_Symptoms.csv")
+
+# Je crée un sample pour que ça tourne plus vite
+df_sample = df.sample(1000).copy()
+df.sample(10)
+```
+
+```{python}
+df.shape
+```
+
+There are 246,945 observations for 378 variables. We need to clean this a bit to make it more useful and relevant.
+
+```{python}
+df.dtypes
+```
+
+```{python}
+df.describe()
+```
+
+```{python}
+# Let's take a look at the number of diseases we have:
+len(df["diseases"].unique())
+# There are 773 of them, let's take a look some of them:
+for disease in df_sample["diseases"].unique():
+    print(f"number of {disease}: {df_sample["diseases"].value_counts()[disease]}")
+# Some are numerous, others are few
+```
+
+**Pre-processing**
+
+Due to our poor skills in medicine, and to improve both efficiency and relevance, we will use an AI to store the diseases into larger, more comprehensive categories. We will ask it to do it just as we saw in class, with a "if ... in disease... yada yada".
+
+```{python}
+def group_disease(disease):
+    disease = disease.lower()
+    
+    # Maladies cardiovasculaires
+    if any(x in disease for x in ["heart", "coronary", "hypertension", "cardiomyopathy", "aortic", "stroke", "ischemia", "atrial", "valve", "arrhythmia", "thrombosis", "embolism", "angina", "arterial", "vascular"]):
+        return "cardiovascular"
+    
+    # Maladies respiratoires
+    elif any(x in disease for x in ["asthma", "copd", "emphysema", "pulmonary", "bronchiolitis", "respiratory", "pneumonia", "bronchitis", "breath", "lung", "tracheal", "laryngeal", "pleural", "pneumothorax"]):
+        return "respiratory"
+    
+    # Maladies métaboliques / endocriniennes
+    elif any(x in disease for x in ["diabetes", "thyroid", "obesity", "metabolic", "hypoglycemia", "hyperglycemia", "parathyroid", "pituitary", "adrenal", "hormone", "cushing", "graves", "hashimoto"]):
+        return "metabolic_endocrine"
+    
+    # Maladies neurologiques / mentales
+    elif any(x in disease for x in ["depression", "anxiety", "parkinson", "dementia", "adhd", "migraine", "epilepsy", "neuropathy", "stroke", "disorder", "bipolar", "schizophrenia", "psychotic", "panic", "ptsd", "traumatic", "stress", "mental", "neurological", "brain", "alzheimer", "huntington", "als", "sclerosis", "palsy", "nerve"]):
+        return "neurological_psych"
+    
+    # Maladies digestives / hépatiques
+    elif any(x in disease for x in ["liver", "gastro", "pancreatitis", "esophagus", "stomach", "intestinal", "ulcer", "nash", "hepatitis", "crohn", "colitis", "ibs", "diverticular", "cirrhosis", "cholecyst", "bile", "bowel"]):
+        return "digestive_hepatic"
+    
+    # Maladies rénales / urologiques
+    elif any(x in disease for x in ["kidney", "renal", "urethral", "bladder", "prostate", "urine", "urinary", "urologic", "uric", "urea"]):
+        return "renal_urological"
+    
+    # Maladies infectieuses
+    elif any(x in disease for x in ["infection", "viral", "bacterial", "fungal", "dengue", "hiv", "malaria", "tuberculosis", "meningitis", "sepsis", "pneumonia", "hepatitis", "herpes", "gonorrhea", "chlamydia", "syphilis", "lyme", "fever", "cold", "flu", "wart", "lice", "scabies"]):
+        return "infectious"
+    
+    # Maladies musculo-squelettiques
+    elif any(x in disease for x in ["fracture", "injury", "arthritis", "osteoporosis", "spine", "knee", "shoulder", "ankle", "foot", "hip", "bone", "cartilage", "tendon", "ligament", "muscle", "sprain", "strain", "dislocation", "bursitis", "carpal tunnel"]):
+        return "musculoskeletal"
+    
+    # Maladies dermatologiques
+    elif any(x in disease for x in ["skin", "dermatitis", "eczema", "psoriasis", "rash", "acne", "wound", "burn", "ulcer", "sore", "wart", "fungal", "abscess", "cyst", "mole", "lesion", "blister", "impetigo"]):
+        return "dermatological"
+    
+    # Maladies oncologiques
+    elif any(x in disease for x in ["cancer", "tumor", "carcinoma", "lymphoma", "sarcoma", "leukemia", "malignant", "ependymoma", "meningioma", "adenoma", "polyp"]):
+        return "oncology"
+    
+    # Maladies gynécologiques / obstétriques
+    elif any(x in disease for x in ["pregnancy", "uterine", "ovarian", "endometriosis", "fibroids", "menopause", "vagina", "placenta", "cervix", "womb", "female", "gynecolog", "obstetric", "natal", "abortion", "ectopic", "preeclamp"]):
+        return "gynecological_obstetric"
+    
+    # Maladies ophtalmologiques / auditives
+    elif any(x in disease for x in ["eye", "glaucoma", "retina", "vision", "hearing", "tinnitus", "otitis", "ocular", "conjunctivitis", "cataract", "cornea", "optic", "visual", "deaf", "ear", "auditory"]):
+        return "ophthalmology_audiology"
+    
+    # Maladies hématologiques / immunologiques
+    elif any(x in disease for x in ["anemia", "bleeding", "coagulation", "immunodeficiency", "leukemia", "lymphoma", "sickle", "hemophil", "thrombocyt", "polycyth"]):
+        return "hematological_immunological"
+    
+    # Autres / non classés
+    else:
+        return "other"
+
+df["group diseases"] = df["diseases"].apply(group_disease)
+#df_sample["group diseases"] = df["diseases"].apply(group_disease)
+
+# In case here is the list of the above grouped categories:
+#["cardiovascular", "respiratory", "metabolic_endocrine", "neurological_psych", "digestive_hepatic", "renal_urological", "infectious", "musculoskeletal", "dermatological", "oncology", "gynecological_obstetric", "ophthalmology_audiology", "hematological_immunological", "other"]
+```
+
+Now that we have grouped many of them, let's take some time to look at them again: 
+
+```{python}
+df.head(10).style
+
+for disease in df["group diseases"].unique():
+    print(f"number of {disease}: {df["group diseases"].value_counts()[disease]}")
+```
+
+## Testing different cleaning choices
+
+### Method 1: discarding low variance symptoms
+
+Should we remove all the other category? I think so, as they are not relevant to compute our tumor, but we will see that.
+
+Now, lets turn to our features: the symptoms. They may be too numerous. The IA mention doing a variance threshold method, I look at the documentation on the Internet and try to apply it with the help of the AI.
+For the AI, a threshold of 0.01 or 0.05 seem relevant. In any case, the goal is to remove features that are too constant between diseases to be relevant; they do not allow to differentiate between disease
+
+```{python}
+from sklearn.feature_selection import VarianceThreshold
+# First, let's identify which columns are symptom features (not metadata)
+# Assuming 'diseases' and 'group diseases' are the target/metadata columns
+
+symptom_columns = [col for col in df.columns if col not in ['diseases', 'group diseases']]
+X = df[symptom_columns]
+
+print(f"Initial number of symptoms: {len(symptom_columns)}")
+print(f"Dataset shape: {X.shape}")
+
+# Apply Variance Threshold
+# For binary features (0/1), threshold is based on Var(X) = p(1-p)
+# threshold=0.01 removes features that appear in less than ~1% or more than ~99% of cases
+selector = VarianceThreshold(threshold=0.01)
+X_filtered = selector.fit_transform(X)
+
+# Get the names of selected features
+selected_features = X.columns[selector.get_support()].tolist()
+removed_features = X.columns[~selector.get_support()].tolist()
+
+print(f"\nAfter variance threshold (0.01):")
+print(f"Number of symptoms remaining: {len(selected_features)}")
+print(f"Number of symptoms removed: {len(removed_features)}")
+print(f"New shape: {X_filtered.shape}")
+
+# Show some removed features (the ones with very low variance)
+print(f"\nSample of removed symptoms (low variance):")
+print(removed_features[:10])
+```
+
+```{python}
+# Create a new dataframe with only selected symptoms + target/metadata columns
+df_method1 = df[['group diseases'] + ['diseases'] + selected_features].copy()
+
+print(f"Cleaned dataset shape: {df_method1.shape}")
+print(f"\nCleaned dataset columns: {df_method1.columns.tolist()[:10]}... (showing first 10)")
+
+# You can adjust the threshold if needed:
+# threshold=0.001 -> removes very rare symptoms (stricter)
+# threshold=0.05  -> removes more symptoms (less strict)
+# threshold=0.0   -> keeps all features with any variance
+```
+
+```{python}
+df_method1
+```
+
+```{python}
+def extract_group_int(disease:str):
+    if disease == "cardiovascular":
+        return 0
+    elif disease == "respiratory":
+        return 1
+    elif disease == "metabolic_endocrine":
+        return 2
+    elif disease == "neurological_psych":
+        return 3
+    elif disease == "digestive_hepatic":
+        return 4
+    elif disease == "renal_urological":
+        return 5
+    elif disease == "infectious":
+        return 6
+    elif disease == "musculoskeletal":
+        return 7
+    elif disease == "dermatological":
+        return 8
+    elif disease == "oncology":
+        return 9
+    elif disease == "gynecological_obstetric":
+        return 10
+    elif disease == "ophthalmology_audiology":
+        return 11
+    elif disease == "hematological_immunological":
+        return 12   
+    elif disease == "other":
+        return 13  
+```
+
+```{python}
+df_method1["Response"] = df_method1["group diseases"].apply(extract_group_int)
+```
+
+### Method 2: adding weights
+
+```{python}
+# On va encoder la colonne 'group diseases' en int pour le lasso
+# Claude AI me propose la solution suivante :
+
+# d'abord on importe tous les packages nécessaires
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LassoCV
+from sklearn.linear_model import LogisticRegressionCV
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+#import seaborn as sns
+```
+
+```{python}
+# on prépare les données
+X_lasso = df.drop(columns=['group diseases', 'diseases'])
+symptom_names = X_lasso.columns.tolist()
+
+print(symptom_names)
+```
+
+```{python}
+# ensuite, on encode les maladies en int
+#le = LabelEncoder()
+#y_lasso = le.fit_transform(df['group diseases'])
+#print(y_lasso)
+#len(set(y_lasso)) # on compte le nombre de classes de maladies = 14 donc c'est bon, on peut continuer
+```
+
+```{python}
+models = {}
+important_symptoms_per_disease = {}
+all_important_symptoms = set()
+
+diseases_list = df['group diseases'].unique()
+
+
+for idx, disease in enumerate(diseases_list, 1):
+    y = (df['group diseases'] == disease).astype(int)
+
+    n_positive = y.sum()
+    print(n_positive)
+    n_negative = len(y) - n_positive
+
+    # Split train/test avec stratification
+    X_train, X_test, y_train, y_test = train_test_split(
+    X_lasso, y, test_size=0.2, random_state=42, stratify=y)
+
+    lasso = LassoCV(
+        cv=5,  # 5-fold cross-validation
+        alphas=np.logspace(-4, 1, 30),  # 30 valeurs de régularisation
+        random_state=42,
+        max_iter=5000,
+        n_jobs=-1  # Utilise tous les CPU disponibles
+    )
+
+    lasso.fit(X_train, y_train)
+
+    train_score = lasso.score(X_train, y_train)
+    test_score = lasso.score(X_test, y_test)
+
+    threshold = 1e-5
+    non_zero_mask = np.abs(lasso.coef_) > threshold
+    important_symptoms = X_lasso.columns[non_zero_mask].tolist()
+
+    models[disease] = lasso
+    important_symptoms_per_disease[disease] = important_symptoms
+    all_important_symptoms.update(important_symptoms)
+
+    if len(important_symptoms) > 0:
+        coef_abs = np.abs(lasso.coef_)
+        top_indices = np.argsort(coef_abs)[-5:][::-1]
+        print(f"  Top 5 symptômes :")
+        for rank, idx in enumerate(top_indices, 1):
+            if coef_abs[idx] > threshold:
+                print(f"    {rank}. {X_lasso.columns[idx]}: {lasso.coef_[idx]:+.4f}")
+
+```
+
+```{python}
+symptoms_to_keep = list(all_important_symptoms)
+df_method2 = df[['group diseases'] + symptoms_to_keep].copy()
+
+df_method2["Response"] = df_method2["group diseases"].apply(extract_group_int)
+```
+
+```{python}
+print(f"When selecting with the lasso method, our matrix shape is now {df_method2.shape}. It means that this methos has dropped {df.shape[1] - df_method2.shape[1]} compared to the original dataset.")
+
+df_method2.head(10)
+
+# Let's save it for not running the cells above again:
+df_method2.to_csv('dataset_reduit_lasso.csv')
+```
+
+### Method 3: Recursive Feature Elimination (RFE)
+
+RFE works the following way: it assigns weights to features and then recursively consider smaller and smaller sets of features. It stops when desired set of features is reached. Here, lets say we want to keep 146 features, such as we obtain a comparable dataset to the variance threshold method.
+
+```{python}
+from sklearn.feature_selection import RFE
+from sklearn.tree import DecisionTreeClassifier
+
+# Prepare the data (same as Method 1)
+symptom_columns = [col for col in df.columns if col not in ['diseases', 'group diseases']]
+X = df[symptom_columns].to_numpy()
+Y = df["group diseases"].apply(extract_group_int).to_numpy()
+
+# Step 1: Create an estimator
+# RFE uses a classifier to estimate feature importance, then recursively removes least important features
+# We use DecisionTreeClassifier as it's fast and interpretable
+estimator = DecisionTreeClassifier(max_depth=10, random_state=42)
+
+# Step 2: Apply RFE to select 146 features
+# RFE will:
+# 1. Fit the estimator on all features
+# 2. Rank features by importance
+# 3. Remove the least important features
+# 4. Repeat until only 146 features remain
+selector = RFE(estimator, n_features_to_select=146, step=1)
+selector.fit(X, Y)
+
+# Step 3: Get the selected features
+selected_features_rfe = df[symptom_columns].columns[selector.support_].tolist()
+print(f"Number of selected features: {len(selected_features_rfe)}")
+print(f"Sample of selected features: {selected_features_rfe[:10]}")
+
+# Step 4: Create df_method3 with selected features + metadata
+df_method3 = df[['group diseases', 'diseases'] + selected_features_rfe].copy()
+print(f"\ndf_method3 shape: {df_method3.shape}")
+
+# Step 5: Add the encoded Response column
+df_method3["Response"] = df_method3["group diseases"].apply(extract_group_int)
+print(f"df_method3 with Response shape: {df_method3.shape}")
+```
+
+# Predicting the diseases
+
+## 1. With Method 1
+
+Now we are going to train the model, just as in the colortree exercise, to predict the disease from the syptoms. 
+
+```{python}
+# Imports
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+# Instanciate needed parameters and set the random seed to be reproductible
+test_ratio = 0.2
+seed_n = 42
+np.random.seed(seed_n)
+
+# Define X and Y
+X = df_method1[[col for col in df_method1.columns if col not in ['group diseases']or col not in ['diseases'] or col not in ['Response']]]
+Y = df_method1["Response"]
+
+# Split the dataset into training and testing sets
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=test_ratio, random_state=seed_n)
+```
+
+```{python}
+plt.figure()
+fig, axes = plt.subplots(1, 2, figsize=(12, 6), sharey=True)
+axes[0].hist(Y_train, bins=np.arange(0, 10) - 0.5, edgecolor="black", alpha=0.7, color="blue")
+axes[1].hist(Y_test, bins = np.arange(0,10) - 0.5, edgecolor = "black", alpha = 0.7, color = "red")
+axes[0].set(title='Training data repartition', ylabel='Frequency', xlabel='Group Disease')
+axes[1].set(title='Testing data repartition', ylabel='Frequency', xlabel='Group Disease')
+plt.show
+```
+
+We could play with the splitting repartition: here it looks satisfying tho
+
+<span style="color:red">
+Outline to do:
+* Vary features selections and compare
+* Vary models / process
+* Plot nice graphs (eg confusion matrix)
+* Research question?
+* READ RELATED PAPERS
+* Fonction qui a symptomes associe maladie
+
+</span>
+
+Following the outline of the exercise_S4, we test different models. We already know that we are in a classification problem, and thus computing the MSE seems unrelevant; the MSE would be greater if class 9 is predicted as class 1 than if class 9 is predicted as class 8, which does not mean anything in a classification problem. Thus we focus on precision, recall and f1-score, namely with confusion matrix.
+
+Here are the definition of these metrics (as written in exercise s4):
+
+    - A confusion matrix is a table giving the false positive, the false negative, the true positive and the true negative.
+    - The precision measures how often a machine learning model correctly predicts the positive class. It is then computed as TP/ (TP + FP) where TP are true positive, and FP false positive.
+    - The Recall stat measures how often a machine learning model correctly identifies positive instances (true positives) from all the actual positive samples in the dataset. It is computed as TP/P (number of true positive on the number of positives)
+    - The Fscore summarize a classification model accuracy. It is computed as 2 * (precision * recall) / (precision + recall).
+
+
+
+
+```{python}
+# Imports
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import BaggingClassifier, GradientBoostingClassifier
+from sklearn.model_selection import KFold
+import time
+
+# Prepare data as numpy arrays
+X = df_method1[[col for col in df_method1.columns if col not in ['group diseases', 'diseases', 'Response']]].to_numpy()
+Y = df_method1["Response"].to_numpy()
+
+# Models dictionary with CONSTRUCTORS (not instances)
+models = {
+    "Decision Trees (CART)": DecisionTreeClassifier,
+    "k Nearest Neighbors (kNN)": lambda: KNeighborsClassifier(n_neighbors=5, n_jobs=-1),  # n_jobs=-1 for parallelization
+    "Bagging Trees": BaggingClassifier,
+    "Boosting Trees": lambda: GradientBoostingClassifier(max_depth=3, learning_rate=0.1, n_estimators=50)  # Faster params
+}
+
+# k-folds Cross-validation setup
+k = 5  # Number of folds
+kf = KFold(n_splits=k, shuffle=True, random_state=seed_n)
+
+# Storage for results
+results_method1 = {}
+
+# Iterate over models
+for model_name, ModelClass in models.items():
+    print(f"\n{'='*60}")
+    print(f"Evaluating model: {model_name}")
+    print(f"{'='*60}")
+    
+    fold_conf_matrices = []  # To store confusion matrices for each fold
+    fold_precision = []      # To store precision scores for each fold
+    fold_recall = []         # To store recall scores for each fold
+    fold_fscore = []         # To store F1 scores for each fold
+    
+    # Cross-validation loop
+    fold_num = 1
+    for train_index, test_index in kf.split(X):
+        start_time = time.time()
+        
+        # Split the data into training and testing sets
+        X_train, X_test = X[train_index], X[test_index]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        
+        # CREATE A FRESH MODEL INSTANCE FOR THIS FOLD
+        if callable(ModelClass):
+            model = ModelClass()
+        else:
+            model = ModelClass
+        
+        # Train the model
+        model.fit(X_train, Y_train)
+        
+        # Predict on the test set
+        Y_pred = model.predict(X_test)
+        
+        # Compute confusion matrix
+        conf_matrix = confusion_matrix(Y_test, Y_pred, labels=np.unique(Y))
+        fold_conf_matrices.append(conf_matrix)
+        
+        # Compute standard precision, recall and F1-score
+        precision = precision_score(Y_test, Y_pred, average="macro", zero_division=1)
+        recall = recall_score(Y_test, Y_pred, average="macro", zero_division=1)
+        fscore = f1_score(Y_test, Y_pred, average="macro", zero_division=1)
+        fold_precision.append(precision)
+        fold_recall.append(recall)
+        fold_fscore.append(fscore)
+        
+        elapsed = time.time() - start_time
+        print(f"  Fold {fold_num}/{k} - Time: {elapsed:.2f}s - Precision: {precision:.3f}, Recall: {recall:.3f}, F1: {fscore:.3f}")
+        
+        fold_num += 1
+
+    # Average precision, recall and F1 score across all folds
+    avg_precision = np.mean(fold_precision)
+    avg_recall = np.mean(fold_recall)
+    avg_fscore = np.mean(fold_fscore)
+
+    # Convert list of confusion matrices to a 3D numpy array, and compute its average
+    conf_matrices = np.array(fold_conf_matrices)
+    mean_conf_matrix = np.mean(conf_matrices, axis=0)
+    
+    # Store results
+    results_method1[model_name] = {
+        "Confusion Matrices": fold_conf_matrices,
+        "Mean CM": mean_conf_matrix,
+        "Average Precision": avg_precision,
+        "Average Recall": avg_recall,
+        "Average F1 score": avg_fscore
+    }
+
+# Display final results
+print("\n" + "="*60)
+print("FINAL RESULTS (Cross-Validation)")
+print("="*60)
+for name, metrics in results_method1.items():
+    print(f"\n{name}:")
+    print(f"  Average Precision: {metrics['Average Precision']:.4f}")
+    print(f"  Average Recall: {metrics['Average Recall']:.4f}")
+    print(f"  Average F1-score: {metrics['Average F1 score']:.4f}")
+```
+
+One hurdle is the computing time, specifically for the KNN estimator (360s per fold) and boosting trees (1000s per fold). We could use a sample, but due to the imbalance of our dataset, I was afraid to lose too much information. Still, in the next chunk I will try either to select one single model, or to use a sample.
+
+In fact, I think it is interesting as it is: precision is essential, but computing time is also a factor to consider. Thus, we decide not to use KNN and boosting trees, in order to keep a sample size relevant.
+
+Then, we choose to stay stil very close to the exercise_s4, as we were given a classification analysis in good conditions. We keep in mind that the objective is to play with those once we have a working model, to see how they behave.
+Thus the next step is to plot confusion matrixes; we will see later how to plot them in a nice way.
+
+```{python}
+import matplotlib.pyplot as plt
+
+def plot_mean_cm(mean_cm: np.array, model_name: str):
+    """
+    Plot the provided mean Confusion Matrix as a readable percentage heatmap.
+    The model name used to produce the CM is also required to be plotted in the title.
+    """
+    # Convert to percentages
+    percent_conf_matrix = mean_cm / mean_cm.sum(axis=1, keepdims=True) * 100
+    
+    # Plot the confusion matrix as a heatmap
+    fig, ax = plt.subplots(figsize=(8, 6))
+    cax = ax.matshow(percent_conf_matrix, cmap="RdYlGn_r")
+    
+    # Add colorbar with label
+    cbar = fig.colorbar(cax)
+    cbar.set_label('Percentage (%)', fontsize=12)
+    
+    # Annotate each cell with the percentage value
+    for i in range(percent_conf_matrix.shape[0]):
+        for j in range(percent_conf_matrix.shape[1]):
+            text_color = "white" if percent_conf_matrix[i, j] > 50 else "black"
+            ax.text(
+                j, i, f"{percent_conf_matrix[i, j]:.2f}%",
+                ha="center", va="center", color=text_color, fontsize=10
+            )
+    
+    # Set axis labels and title
+    ax.set_xticks(range(percent_conf_matrix.shape[1]))
+    ax.set_yticks(range(percent_conf_matrix.shape[0]))
+    ax.set_xticklabels([f"Pred {i}" for i in range(percent_conf_matrix.shape[1])], fontsize=10)
+    ax.set_yticklabels([f"True {i}" for i in range(percent_conf_matrix.shape[0])], fontsize=10)
+    ax.set_xlabel("Predicted Label", fontsize=12)
+    ax.set_ylabel("True Label", fontsize=12)
+    ax.set_title(f"Mean Confusion Matrix (as %) for {model_name}", fontsize=14)
+    
+    # Improve layout
+    plt.tight_layout()
+    plt.show()
+```
+
+```{python}
+plot_mean_cm(mean_cm = results_method1["Decision Trees (CART)"]["Mean CM"], model_name = "Decision Trees (CART)")
+```
+
+```{python}
+plot_mean_cm(mean_cm = results_method1["k Nearest Neighbors (kNN)"]["Mean CM"], model_name = "k Nearest Neighbors (kNN)")
+```
+
+```{python}
+plot_mean_cm(mean_cm = results_method1["Bagging Trees"]["Mean CM"], model_name = "Bagging Trees")
+```
+
+```{python}
+plot_mean_cm(mean_cm = results_method1["Boosting Trees"]["Mean CM"], model_name = "Boosting Trees")
+```
+
+```{python}
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Create a 2x2 subplot grid
+fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+axes = axes.flatten()
+
+# Define the models in the desired order
+models_order = [
+    ("Decision Trees (CART)", 0),      # Top left
+    ("k Nearest Neighbors (kNN)", 1),  # Top right
+    ("Bagging Trees", 2),              # Bottom left
+    ("Boosting Trees", 3)              # Bottom right
+]
+
+for model_name, position in models_order:
+    ax = axes[position]
+    mean_cm = results_method1[model_name]["Mean CM"]
+    
+    # Convert to percentages
+    percent_conf_matrix = mean_cm / mean_cm.sum(axis=1, keepdims=True) * 100
+    
+    # Plot the confusion matrix as a heatmap
+    im = ax.imshow(percent_conf_matrix, cmap="RdYlGn_r")
+    
+    # Annotate each cell with the percentage value
+    for i in range(percent_conf_matrix.shape[0]):
+        for j in range(percent_conf_matrix.shape[1]):
+            text_color = "white" if percent_conf_matrix[i, j] > 50 else "black"
+            ax.text(
+                j, i, f"{percent_conf_matrix[i, j]:.2f}%",
+                ha="center", va="center", color=text_color, fontsize=8
+            )
+    
+    # Set axis labels and title
+    ax.set_xticks(range(percent_conf_matrix.shape[1]))
+    ax.set_yticks(range(percent_conf_matrix.shape[0]))
+    ax.set_xticklabels([f"Pred {i}" for i in range(percent_conf_matrix.shape[1])], fontsize=9)
+    ax.set_yticklabels([f"True {i}" for i in range(percent_conf_matrix.shape[0])], fontsize=9)
+    ax.set_xlabel("Predicted Label", fontsize=10)
+    ax.set_ylabel("True Label", fontsize=10)
+    ax.set_title(f"{model_name}", fontsize=11, fontweight='bold')
+
+# Add a shared colorbar
+#fig.colorbar(im, ax=axes, label='Percentage (%)', fraction=0.046, pad=0.02)
+fig.suptitle('Confusion Matrices Comparison', fontsize=14, fontweight='bold', y=0.995)
+plt.tight_layout()
+plt.show()
+```
+
+From these matrixes, we see how the different models seem pretty good at classifying, except for our boosting trees. Note that in each cases, the class "other" is very poorly classified, this was expected as it is a very heterogeneous class.
+
+We could mention to which extent are our features imbalanced (way too much "other" namely). We know how to resolve this: weighted metrics.
+
+```{python}
+plt.hist(df_method1["Response"], bins=np.arange(0, 15) - 0.5, edgecolor="black", alpha=0.7, color="green", density=True)
+plt.title("An imbalanced dataset")
+plt.xlabel("Group Disease")
+plt.ylabel("Density")
+```
+
+We should (at least for the PDF version), find a nice way to plot confusion matrixes.
+
+To distinguish between Decision trees, kNN, and Bagging trees, we could work with weighted metrics. Indeed, as we have an imbalanced dataset, it is relevant to give more importance to the less represented classes.
+
+```{python}
+# Imports
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.model_selection import KFold
+
+# Convert X and Y to numpy arrays to avoid indexing issues with KFold
+X = df_method1[[col for col in df_cleaned.columns if col not in ['group diseases', 'diseases', 'Response']]].to_numpy()
+Y = df_method1["Response"].to_numpy()
+
+# Storage for results
+results_method1_w = {}
+models_2 = {
+    "Decision Trees (CART)": DecisionTreeClassifier,
+    "k Nearest Neighbors (kNN)": lambda: KNeighborsClassifier(n_neighbors=5, n_jobs=-1),
+    "Bagging Trees": BaggingClassifier,
+}
+
+k = 5  # Number of folds
+kf = KFold(n_splits=k, shuffle=True, random_state=seed_n)
+
+# Iterate over models
+for name, ModelClass in models_2.items():
+    print(f"\n{'='*60}")
+    print(f"Evaluating model: {name}")
+    print(f"{'='*60}")
+    
+    fold_conf_matrices = []   # To store confusion matrices for each fold
+    fold_precision = []       # To store precision scores for each fold
+    fold_recall = []          # To store recall scores for each fold
+    fold_fscore = []          # To store F1 scores for each fold
+    fold_w_precision = []     # To store weighted precision scores for each fold
+    fold_w_recall = []        # To store weighted recall scores for each fold
+    fold_w_fscore = []        # To store weighted F1 scores for each fold
+    
+    # Cross-validation loop
+    fold_num = 1
+    for train_index, test_index in kf.split(X):
+        # Split the data into training and testing sets using integer indexing
+        X_train, X_test = X[train_index], X[test_index]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        
+        # CREATE A FRESH MODEL INSTANCE FOR THIS FOLD
+        if callable(ModelClass):
+            model = ModelClass()
+        else:
+            model = ModelClass
+        
+        # Train the model
+        model.fit(X_train, Y_train)
+        
+        # Predict on the test set
+        Y_pred = model.predict(X_test)
+        
+        # Compute confusion matrix
+        conf_matrix = confusion_matrix(Y_test, Y_pred, labels=np.unique(Y))
+        fold_conf_matrices.append(conf_matrix)
+        
+        # Compute standard precision, recall and F1-score
+        precision = precision_score(Y_test, Y_pred, average="macro", zero_division=1)
+        recall = recall_score(Y_test, Y_pred, average="macro", zero_division=1)
+        fscore = f1_score(Y_test, Y_pred, average="macro", zero_division=1)
+        fold_precision.append(precision)
+        fold_recall.append(recall)
+        fold_fscore.append(fscore)
+
+        # Generate a classification report with weighted metrics
+        report = classification_report(Y_test, Y_pred, output_dict=True, zero_division=1)
+        fold_w_precision.append(report['weighted avg']['precision'])
+        fold_w_recall.append(report['weighted avg']['recall'])
+        fold_w_fscore.append(report['weighted avg']['f1-score'])
+        
+        print(f"  Fold {fold_num}/{k} - Precision: {precision:.3f}, Weighted: {report['weighted avg']['precision']:.3f}")
+        fold_num += 1
+    
+    # Average precision, recall and F1 score across all folds
+    avg_precision = np.mean(fold_precision)
+    avg_recall = np.mean(fold_recall)
+    avg_fscore = np.mean(fold_fscore)
+
+    # Average weighted precision, recall and F1 score across all folds
+    avg_w_precision = np.mean(fold_w_precision)
+    avg_w_recall = np.mean(fold_w_recall)
+    avg_w_fscore = np.mean(fold_w_fscore)
+
+    # Convert list of confusion matrices to a 3D numpy array, and compute its average
+    conf_matrices = np.array(fold_conf_matrices)
+    mean_conf_matrix = np.mean(conf_matrices, axis=0)
+    
+    # Store results
+    results_method1_w[name] = {
+        "Mean CM": mean_conf_matrix,
+        "Average Precision": avg_precision,
+        "Average Recall": avg_recall,
+        "Average F1 score": avg_fscore,
+        "Weighted avg Precision": avg_w_precision,
+        "Weighted avg Recall": avg_w_recall,
+        "Weighted avg F1score": avg_w_fscore
+    }
+
+# Display final results
+print("\n" + "="*60)
+print("FINAL RESULTS (Cross-Validation)")
+print("="*60)
+for name, metrics in results_method1_w.items():
+    print(f"\n{name}:")
+    print(f"  Average Precision: {metrics['Average Precision']:.4f}")
+    print(f"  Average Weighted Precision: {metrics['Weighted avg Precision']:.4f}")
+    print(f"  Average Recall: {metrics['Average Recall']:.4f}")
+    print(f"  Average Weighted Recall: {metrics['Weighted avg Recall']:.4f}")
+    print(f"  Average F1-score: {metrics['Average F1 score']:.4f}")
+    print(f"  Average Weighted F1-score: {metrics['Weighted avg F1score']:.4f}")
+```
+
+```{python}
+
+# Save results to disk using joblib
+import joblib
+
+# Save after training
+joblib.dump(results_method1, 'results_method1.pkl')
+joblib.dump(results_method1_w, 'results_method1_w.pkl')
+
+print("Results saved successfully!")
+```
+
+The weighted Metrix of Bagging Trees and Decision Trees are somewhat similar, though Bagging Trees seems to perform better.
+
+## 2. With Method 2: Lasso selection
+
+```{python}
+# Imports
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+# Instanciate needed parameters and set the random seed to be reproductible
+test_ratio = 0.2
+seed_n = 42
+np.random.seed(seed_n)
+
+# Define X and Y
+X = df_method2[[col for col in df_method2.columns if col not in ['group diseases']or col not in ['diseases'] or col not in ['Response']]]
+Y = df_method2["Response"]
+
+# Split the dataset into training and testing sets
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=test_ratio, random_state=seed_n)
+```
+
+```{python}
+# Imports
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import BaggingClassifier, GradientBoostingClassifier
+from sklearn.model_selection import KFold
+import time
+
+# Prepare data as numpy arrays
+X = df_method2[[col for col in df_method2.columns if col not in ['group diseases', 'diseases', 'Response']]].to_numpy()
+Y = df_method2["Response"].to_numpy()
+
+# Models dictionary with CONSTRUCTORS (not instances)
+models = {
+    "Decision Trees (CART)": DecisionTreeClassifier,
+    "k Nearest Neighbors (kNN)": lambda: KNeighborsClassifier(n_neighbors=5, n_jobs=-1),  # n_jobs=-1 for parallelization
+    "Bagging Trees": BaggingClassifier,
+}
+
+# k-folds Cross-validation setup
+k = 5  # Number of folds
+kf = KFold(n_splits=k, shuffle=True, random_state=seed_n)
+
+# Storage for results
+results_method2 = {}
+
+# Iterate over models
+for model_name, ModelClass in models.items():
+    print(f"\n{'='*60}")
+    print(f"Evaluating model: {model_name}")
+    print(f"{'='*60}")
+    
+    fold_conf_matrices = []  # To store confusion matrices for each fold
+    fold_precision = []      # To store precision scores for each fold
+    fold_recall = []         # To store recall scores for each fold
+    fold_fscore = []         # To store F1 scores for each fold
+    
+    # Cross-validation loop
+    fold_num = 1
+    for train_index, test_index in kf.split(X):
+        start_time = time.time()
+        
+        # Split the data into training and testing sets
+        X_train, X_test = X[train_index], X[test_index]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        
+        # CREATE A FRESH MODEL INSTANCE FOR THIS FOLD
+        if callable(ModelClass):
+            model = ModelClass()
+        else:
+            model = ModelClass
+        
+        # Train the model
+        model.fit(X_train, Y_train)
+        
+        # Predict on the test set
+        Y_pred = model.predict(X_test)
+        
+        # Compute confusion matrix
+        conf_matrix = confusion_matrix(Y_test, Y_pred, labels=np.unique(Y))
+        fold_conf_matrices.append(conf_matrix)
+        
+        # Compute standard precision, recall and F1-score
+        precision = precision_score(Y_test, Y_pred, average="macro", zero_division=1)
+        recall = recall_score(Y_test, Y_pred, average="macro", zero_division=1)
+        fscore = f1_score(Y_test, Y_pred, average="macro", zero_division=1)
+        fold_precision.append(precision)
+        fold_recall.append(recall)
+        fold_fscore.append(fscore)
+        
+        elapsed = time.time() - start_time
+        print(f"  Fold {fold_num}/{k} - Time: {elapsed:.2f}s - Precision: {precision:.3f}, Recall: {recall:.3f}, F1: {fscore:.3f}")
+        
+        fold_num += 1
+
+    # Average precision, recall and F1 score across all folds
+    avg_precision = np.mean(fold_precision)
+    avg_recall = np.mean(fold_recall)
+    avg_fscore = np.mean(fold_fscore)
+
+    # Convert list of confusion matrices to a 3D numpy array, and compute its average
+    conf_matrices = np.array(fold_conf_matrices)
+    mean_conf_matrix = np.mean(conf_matrices, axis=0)
+    
+    # Store results
+    results_method2[model_name] = {
+        "Confusion Matrices": fold_conf_matrices,
+        "Mean CM": mean_conf_matrix,
+        "Average Precision": avg_precision,
+        "Average Recall": avg_recall,
+        "Average F1 score": avg_fscore
+    }
+
+# Display final results
+print("\n" + "="*60)
+print("FINAL RESULTS (Cross-Validation)")
+print("="*60)
+for name, metrics in results_method2.items():
+    print(f"\n{name}:")
+    print(f"  Average Precision: {metrics['Average Precision']:.4f}")
+    print(f"  Average Recall: {metrics['Average Recall']:.4f}")
+    print(f"  Average F1-score: {metrics['Average F1 score']:.4f}")
+```
+
+```{python}
+# Save results to disk using joblib
+import joblib
+
+# Save after training
+joblib.dump(results_method2, 'results_method2.pkl')
+
+print("Results saved successfully!")
+```
+
+## 3. With Method 3: RFE 
+
+We replicate what we have done in previous section, focusing on the results we could have with this RFE method.
+
+```{python}
+# Imports
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+# Instanciate needed parameters and set the random seed to be reproductible
+test_ratio = 0.2
+seed_n = 42
+np.random.seed(seed_n)
+
+# Define X and Y
+X = df_method3[[col for col in df_method3.columns if col not in ['group diseases']or col not in ['diseases'] or col not in ['Response']]]
+Y = df_method3["Response"]
+
+# Split the dataset into training and testing sets
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=test_ratio, random_state=seed_n)
+```
+
+```{python}
+# Imports
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import BaggingClassifier, GradientBoostingClassifier
+from sklearn.model_selection import KFold
+import time
+
+# Prepare data as numpy arrays
+X = df_method3[[col for col in df_method3.columns if col not in ['group diseases', 'diseases', 'Response']]].to_numpy()
+Y = df_method3["Response"].to_numpy()
+
+# Models dictionary with CONSTRUCTORS (not instances)
+models = {
+    "Decision Trees (CART)": DecisionTreeClassifier,
+    "k Nearest Neighbors (kNN)": lambda: KNeighborsClassifier(n_neighbors=5, n_jobs=-1),  # n_jobs=-1 for parallelization
+    "Bagging Trees": BaggingClassifier,
+}
+
+# k-folds Cross-validation setup
+k = 5  # Number of folds
+kf = KFold(n_splits=k, shuffle=True, random_state=seed_n)
+
+# Storage for results
+results_method3 = {}
+
+# Iterate over models
+for model_name, ModelClass in models.items():
+    print(f"\n{'='*60}")
+    print(f"Evaluating model: {model_name}")
+    print(f"{'='*60}")
+    
+    fold_conf_matrices = []  # To store confusion matrices for each fold
+    fold_precision = []      # To store precision scores for each fold
+    fold_recall = []         # To store recall scores for each fold
+    fold_fscore = []         # To store F1 scores for each fold
+    
+    # Cross-validation loop
+    fold_num = 1
+    for train_index, test_index in kf.split(X):
+        start_time = time.time()
+        
+        # Split the data into training and testing sets
+        X_train, X_test = X[train_index], X[test_index]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        
+        # CREATE A FRESH MODEL INSTANCE FOR THIS FOLD
+        if callable(ModelClass):
+            model = ModelClass()
+        else:
+            model = ModelClass
+        
+        # Train the model
+        model.fit(X_train, Y_train)
+        
+        # Predict on the test set
+        Y_pred = model.predict(X_test)
+        
+        # Compute confusion matrix
+        conf_matrix = confusion_matrix(Y_test, Y_pred, labels=np.unique(Y))
+        fold_conf_matrices.append(conf_matrix)
+        
+        # Compute standard precision, recall and F1-score
+        precision = precision_score(Y_test, Y_pred, average="macro", zero_division=1)
+        recall = recall_score(Y_test, Y_pred, average="macro", zero_division=1)
+        fscore = f1_score(Y_test, Y_pred, average="macro", zero_division=1)
+        fold_precision.append(precision)
+        fold_recall.append(recall)
+        fold_fscore.append(fscore)
+        
+        elapsed = time.time() - start_time
+        print(f"  Fold {fold_num}/{k} - Time: {elapsed:.2f}s - Precision: {precision:.3f}, Recall: {recall:.3f}, F1: {fscore:.3f}")
+        
+        fold_num += 1
+
+    # Average precision, recall and F1 score across all folds
+    avg_precision = np.mean(fold_precision)
+    avg_recall = np.mean(fold_recall)
+    avg_fscore = np.mean(fold_fscore)
+
+    # Convert list of confusion matrices to a 3D numpy array, and compute its average
+    conf_matrices = np.array(fold_conf_matrices)
+    mean_conf_matrix = np.mean(conf_matrices, axis=0)
+    
+    # Store results
+    results_method3[model_name] = {
+        "Confusion Matrices": fold_conf_matrices,
+        "Mean CM": mean_conf_matrix,
+        "Average Precision": avg_precision,
+        "Average Recall": avg_recall,
+        "Average F1 score": avg_fscore
+    }
+
+# Display final results
+print("\n" + "="*60)
+print("FINAL RESULTS (Cross-Validation)")
+print("="*60)
+for name, metrics in results_method3.items():
+    print(f"\n{name}:")
+    print(f"  Average Precision: {metrics['Average Precision']:.4f}")
+    print(f"  Average Recall: {metrics['Average Recall']:.4f}")
+    print(f"  Average F1-score: {metrics['Average F1 score']:.4f}")
+```
+
+Once again, Bagging Trees and Decision Trees have pretty good results, though the results all seem worse than Method 1's results.
+
+```{python}
+# Save results to disk using joblib
+import joblib
+
+# Save after training
+joblib.dump(results_method3, 'results_method3.pkl')
+
+print("Results saved successfully!")
+```
+
+# Comparison of our different feature selection methods
+
+```{python}
+
+# Load previously saved results (instead of rerunning the cross-validation)
+import joblib
+
+try:
+    results_method1 = joblib.load('results_method1.pkl')
+    results_method1_w = joblib.load('results_method1_w.pkl')
+    results_method3 = joblib.load('results_method3.pkl')
+    print("Results loaded successfully!")
+except FileNotFoundError:
+    print("Results files not found. You need to run the training cells first.")
+```
+
+Now that we have tested our different models with our different models, lets compare the ones that seem the most relevant, using a nice graph.
+
+```{python}
+#We will plot a graph plotting the mean of the precision matrix percentage trace for each model
+# 
+def trace_percentage(mean_cm: np.array):
+    """
+    Calculate the trace of the confusion matrix as a percentage of correct predictions.
+    """
+    correct_predictions = np.trace(mean_cm)
+    total_predictions = np.sum(mean_cm)
+    trace_percent = (correct_predictions / total_predictions) * 100
+    return trace_percent 
+```
+
+```{python}
+#Now lets plot the trace percentage for each model
+
+# Define the models we want to compare (in the order to display)
+models_to_compare = ["Decision Trees (CART)", "k Nearest Neighbors (kNN)", "Bagging Trees"]
+
+# Extract trace percentages for Method 1 (Variance Threshold)
+method1_traces = [trace_percentage(results_method1[model]["Mean CM"]) for model in models_to_compare]
+
+# Extract trace percentages for Method 1 Weighted
+method1_w_traces = [trace_percentage(results_method1_w[model]["Mean CM"]) for model in models_to_compare]
+
+#Extratt trace percentages for Method 3
+method3_traces = [trace_percentage(results_method3[model]["Mean CM"]) for model in models_to_compare]
+
+# Create the plot
+plt.figure(figsize=(10, 6))
+x_pos = np.arange(len(models_to_compare))
+plt.plot(x_pos, method1_traces, marker='o', linewidth=4, label='Method 1: Variance Threshold', markersize=8, color='#1f77b4')
+plt.plot(x_pos, method1_w_traces, marker='s', linewidth=2.5, label='Method 1 Weighted', markersize=8, color='#ff7f0e')
+plt.plot(x_pos, method3_traces, marker='^', linewidth=2.5, label='Method 3: RFE', markersize=8, color='#2ca02c')
+# Customize the plot
+plt.xlabel('Models', fontsize=12)
+plt.ylabel('Trace Percentage (%)', fontsize=12)
+plt.title('Model Performance Comparison Across Feature Selection Methods', fontsize=14)
+plt.xticks(x_pos, models_to_compare, rotation=15, ha='right')
+plt.ylim([0, 100])
+plt.grid(True, alpha=0.3)
+plt.legend(fontsize=11)
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+# Print the actual trace percentage values to see if they're different
+print("Method 1 traces:", method1_traces)
+print("Method 1 Weighted traces:", method1_w_traces)
+print("Method 3 traces:", method3_traces)
+print("\nDifferences (Method 1 - Method 1 Weighted):")
+for i, model in enumerate(models_to_compare):
+    diff = method1_traces[i] - method1_w_traces[i]
+    print(f"  {model}: {diff:.4f}%")
+```
+
+## Intenting an output search bar
+
+At the end of the day we would like to tell the patient if they have to worry about their observed symptoms.
+
+In this section, we try to build a search bar just like ChatGPT that returns what could be the disease given the symptoms.
+
+An example of what you can write:
+"Recently, I've been feelling a bit bad. I'm feeling hot and cold, I'm having unpredictable menstruation and painful menstruation. Sometimes I have insomnia."
+
+```{python}
+# Let's pay attention to the symptoms we have in our dt
+symptoms = df.axes[1].tolist()
+print(symptoms)
+
+# Unfortunately,  some symptoms contain more than a word, let's count:
+for symptom in symptoms:
+    words_list = symptom.split(' ')
+    print(words_list)
+    counter = 0
+    if len(words_list) <= counter:
+        pass
+    elif len(words_list) > counter:
+        counter = len(words_list)
+print(f"The maximum number of words in a symptom is {counter}.")
+```
+
+```{python}
+# The patient writes down his symptoms in the a search bar
+# Then we encode them in a vector
+
+print("Please tell us your symptoms")
+text = input()
+```
+
+```{python}
+# Well then, we have to extract the symptoms from the text
+text = text.lower()
+
+
+
+
+```
+
